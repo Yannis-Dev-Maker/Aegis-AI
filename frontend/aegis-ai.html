@@ -1,0 +1,2001 @@
+<!doctype html>
+<html lang="zxx">
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Lyra</title>
+
+    <!-- CSS Linked -->
+    <link rel="stylesheet" href="assets/css/bootstrap.min.css">
+    <link rel="stylesheet" href="assets/css/aos.css">
+    <link rel="stylesheet" href="assets/css/boxicons.min.css">
+    <link rel="stylesheet" href="assets/css/owl.carousel.min.css">
+    <link rel="stylesheet" href="assets/css/magnific-popup.min.css">
+    <link rel="stylesheet" href="assets/css/nice-select.min.css">
+    <link rel="stylesheet" href="assets/css/flaticon.css">
+    <link rel="stylesheet" href="assets/css/header.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+
+    <!-- favicon Linked -->
+    <link rel="icon" type="image/png" href="assets/img/all-img/favicon.png">
+
+    <!-- Solana Libs CDN (for wallet & balance) -->
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <script src="https://unpkg.com/@solana/wallet-adapter-base@0.9.23/umd/wallet-adapter-base.min.js"></script>
+    <script src="https://unpkg.com/@solana/wallet-adapter-wallets@0.19.16/umd/wallet-adapter-wallets.min.js"></script>
+    <!-- Solana Wallet Adapter: individual wallet UMDs -->
+    <script src="https://unpkg.com/@solana/wallet-adapter-phantom@0.9.23/umd/wallet-adapter-phantom.min.js"></script>
+    <script src="https://unpkg.com/@solana/wallet-adapter-solflare@0.9.23/umd/wallet-adapter-solflare.min.js"></script>
+    <script src="https://unpkg.com/@solana/wallet-adapter-backpack@0.1.6/umd/wallet-adapter-backpack.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tweetnacl@1.0.3/nacl.min.js"></script>
+    <script>
+        /* ---- Minimal Base58 (Bitcoin alphabet) helpers ---- */
+        (function (global) {
+            const ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+            const BASE = ALPHABET.length;
+
+            function toBase58(bytes) {
+                if (!(bytes instanceof Uint8Array)) bytes = new Uint8Array(bytes);
+                let zeros = 0, i = 0, j = 0, carry, out = [];
+                while (i < bytes.length && bytes[i] === 0) { zeros++; i++; }
+                let digits = [0];
+                for (; i < bytes.length; i++) {
+                    carry = bytes[i];
+                    for (j = 0; j < digits.length; j++) {
+                        carry += digits[j] << 8;
+                        digits[j] = carry % BASE;
+                        carry = (carry / BASE) | 0;
+                    }
+                    while (carry > 0) {
+                        digits.push(carry % BASE);
+                        carry = (carry / BASE) | 0;
+                    }
+                }
+                while (zeros-- > 0) out.push('1');
+                for (j = digits.length - 1; j >= 0; j--) out.push(ALPHABET[digits[j]]);
+                return out.join('');
+            }
+
+            function fromBase58(str) {
+                if (typeof str !== 'string') throw new TypeError('str must be string');
+                let i = 0, j = 0, carry, bytes = [0], zeros = 0;
+                while (i < str.length && str[i] === '1') { zeros++; i++; }
+                for (; i < str.length; i++) {
+                    const val = ALPHABET.indexOf(str[i]);
+                    if (val < 0) throw new Error('Invalid Base58 character');
+                    carry = val;
+                    for (j = 0; j < bytes.length; j++) {
+                        carry += bytes[j] * BASE;
+                        bytes[j] = carry & 0xff;
+                        carry >>= 8;
+                    }
+                    while (carry > 0) {
+                        bytes.push(carry & 0xff);
+                        carry >>= 8;
+                    }
+                }
+                const out = new Uint8Array(zeros + bytes.length);
+                for (i = 0; i < bytes.length; i++) out[out.length - 1 - i] = bytes[i];
+                return out;
+            }
+
+            global.base58 = { encode: toBase58, decode: fromBase58 };
+        })(window);
+
+        window.bs58 = window.base58;
+    </script>
+
+
+
+
+    <style>
+
+       
+
+        h3 {
+            color: #ffffff !important;
+        }
+
+        .hero-section-2 {
+            position: relative;
+            min-height: 580px;
+            overflow: hidden;
+        }
+
+            .hero-section-2::before {
+                height: 480px !important;
+                max-height: 480px !important;
+            }
+
+        .content-below-hero {
+            position: relative;
+            z-index: 2;
+            background: transparent;
+            padding-top: 40px;
+        }
+
+        .aetheria-card {
+            /* max-width: 900px;  <-- remove this line */
+            margin: 0 auto;
+            /* rest as-is */
+        }
+
+
+            .aetheria-card #log {
+                margin-top: 12px;
+                font-size: 0.8rem;
+                background: #050716;
+                border-radius: 8px;
+                padding: 8px;
+                max-height: 150px;
+                overflow-y: auto;
+                border: 1px solid #262a45;
+                font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+                color: #f7f7ff; /* make log text readable */
+            }
+
+        .terms-text a {
+            color: #00c8ff;
+            text-decoration: underline;
+        }
+
+
+            .aetheria-card h3 {
+                margin-top: 0;
+                margin-bottom: 16px;
+            }
+
+            /* Hide Avatar ID & Voice ID section (we don't need them with Hedra) */
+            #avatarId,
+            label[for="avatarId"],
+            #voiceId,
+            label[for="voiceId"],
+            .aetheria-card .row.mb-3 {
+                display: none !important;
+            }
+
+            .aetheria-card input[type="text"] {
+                width: 100%;
+                max-width: 100%;
+                padding: 8px 10px;
+                border-radius: 8px;
+                border: 1px solid #343854;
+                background: #080b1c;
+                color: #f7f7ff;
+            }
+
+            .aetheria-card button {
+                padding: 8px 16px;
+                border-radius: 999px;
+                border: none;
+                cursor: pointer;
+                margin-right: 8px;
+                margin-top: 8px;
+                background: #4f46e5;
+                color: #fff;
+                font-weight: 500;
+            }
+
+                .aetheria-card button.secondary {
+                    background: #dc2626;
+                }
+
+            .aetheria-card video {
+                width: 100%;
+                height: auto;
+                max-height: 480px;
+                object-fit: contain; /* <-- FIX: stop cropping */
+                background: #000;
+                border-radius: 12px;
+                margin-top: 16px;
+            }
+
+
+
+            .aetheria-card #log {
+                margin-top: 12px;
+                font-size: 0.8rem;
+                background: #050716;
+                border-radius: 8px;
+                padding: 8px;
+                max-height: 150px;
+                overflow-y: auto;
+                border: 1px solid #262a45;
+                font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            }
+
+            .aetheria-card label {
+                font-size: 0.85rem;
+                opacity: 0.8;
+            }
+
+        /* Sticky footer helpers */
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+
+            body.dark-theme {
+                display: flex;
+                flex-direction: column;
+                min-height: 100vh;
+            }
+
+        .content-wrapper {
+            flex: 1 0 auto;
+        }
+
+        .footer-area {
+            flex-shrink: 0;
+            width: 100%;
+        }
+    </style>
+
+
+    <!-- Solana Libs CDN (for wallet & balance) -->
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <script src="https://unpkg.com/@solana/wallet-adapter-base@0.9.23/umd/wallet-adapter-base.min.js"></script>
+    <script src="https://unpkg.com/@solana/wallet-adapter-wallets@0.19.16/umd/wallet-adapter-wallets.min.js"></script>
+    <!-- Solana Wallet Adapter: individual wallet UMDs -->
+    <script src="https://unpkg.com/@solana/wallet-adapter-phantom@0.9.23/umd/wallet-adapter-phantom.min.js"></script>
+    <script src="https://unpkg.com/@solana/wallet-adapter-solflare@0.9.23/umd/wallet-adapter-solflare.min.js"></script>
+    <script src="https://unpkg.com/@solana/wallet-adapter-backpack@0.1.6/umd/wallet-adapter-backpack.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tweetnacl@1.0.3/nacl.min.js"></script>
+    <script>
+        /* ---- Minimal Base58 (Bitcoin alphabet) helpers ---- */
+        (function (global) {
+            const ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+            const BASE = ALPHABET.length;
+
+            function toBase58(bytes) {
+                if (!(bytes instanceof Uint8Array)) bytes = new Uint8Array(bytes);
+                let zeros = 0, i = 0, j = 0, carry, out = [];
+                while (i < bytes.length && bytes[i] === 0) { zeros++; i++; }
+                let digits = [0];
+                for (; i < bytes.length; i++) {
+                    carry = bytes[i];
+                    for (j = 0; j < digits.length; j++) {
+                        carry += digits[j] << 8;
+                        digits[j] = carry % BASE;
+                        carry = (carry / BASE) | 0;
+                    }
+                    while (carry > 0) {
+                        digits.push(carry % BASE);
+                        carry = (carry / BASE) | 0;
+                    }
+                }
+                while (zeros-- > 0) out.push('1');
+                for (j = digits.length - 1; j >= 0; j--) out.push(ALPHABET[digits[j]]);
+                return out.join('');
+            }
+
+            function fromBase58(str) {
+                if (typeof str !== 'string') throw new TypeError('str must be string');
+                let i = 0, j = 0, carry, bytes = [0], zeros = 0;
+                while (i < str.length && str[i] === '1') { zeros++; i++; }
+                for (; i < str.length; i++) {
+                    const val = ALPHABET.indexOf(str[i]);
+                    if (val < 0) throw new Error('Invalid Base58 character');
+                    carry = val;
+                    for (j = 0; j < bytes.length; j++) {
+                        carry += bytes[j] * BASE;
+                        bytes[j] = carry & 0xff;
+                        carry >>= 8;
+                    }
+                    while (carry > 0) {
+                        bytes.push(carry & 0xff);
+                        carry >>= 8;
+                    }
+                }
+                const out = new Uint8Array(zeros + bytes.length);
+                for (i = 0; i < bytes.length; i++) out[out.length - 1 - i] = bytes[i];
+                return out;
+            }
+
+            global.base58 = { encode: toBase58, decode: fromBase58 };
+        })(window);
+
+        window.bs58 = window.base58;
+    </script>
+
+</head>
+<body class="dark-theme">
+    <!-- Start Navbar Area (same as original) -->
+    <div class="navbar-area" id="navbar">
+        <div class="container">
+            <nav class="navbar navbar-expand-lg">
+                <a class="navbar-brand" href="index.html">
+                    CodeDodona
+                </a>
+                <div class="other-all-option">
+                    <a class="navbar-toggler" data-bs-toggle="offcanvas" href="#navbarOffcanvas" role="button" aria-controls="navbarOffcanvas">
+                        <span class="burger-menu">
+                            <span class="top-bar"></span>
+                            <span class="middle-bar"></span>
+                            <span class="bottom-bar"></span>
+                        </span>
+                    </a>
+                </div>
+                <div class="collapse navbar-collapse">
+                    <ul class="navbar-nav">
+                        <li class="nav-item dropdown">
+                            <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false">
+                                Technology
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li class="nav-item">
+                                    <a href="https://www.codedodona.com/Bot1.html" class="nav-link">
+                                        AI Meme Oracle
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="https://www.codedodona.com/agents.html" class="nav-link">
+                                        Commercial AI Agents
+                                    </a>
+                                </li>
+
+                                <li class="nav-item">
+                                    <a href="https://www.codedodona.com/podcasts.html" class="nav-link">
+                                        PodCasts
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="https://www.codedodona.com/beyondscreen.html" class="nav-link">
+                                        Beyond Screen
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="https://www.codedodona.com/Dashboard.html" class="nav-link">
+                                        Credit Dashboard
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false">
+                                About
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li class="nav-item">
+                                    <a href="https://www.codedodona.com/index.html#products1" class="nav-link">
+                                        CodeDodona
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="https://www.codedodona.com/index.html#products2" class="nav-link">
+                                        BackStory
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="https://www.codedodona.com/index.html#products3" class="nav-link">
+                                        What Powers CodeDodona
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="https://www.codedodona.com/index.html#products4" class="nav-link">
+                                        Purpose
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="https://www.codedodona.com/ecosystem.html" class="nav-link">
+                                        $DODONA — Optional Token
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false">
+                                Roadmap
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li class="nav-item">
+                                    <a href="https://www.codedodona.com/index.html#projects1" class="nav-link">
+                                        Phase 1
+                                    </a>
+                                </li>
+
+                                <li class="nav-item">
+                                    <a href="https://www.codedodona.com/index.html#projects2" class="nav-link">
+                                        Phase 2
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="https://www.codedodona.com/index.html#projects3" class="nav-link">
+                                        Phase 3
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false">
+                                Documents
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li class="nav-item">
+                                    <a href="https://www.codedodona.com/tokenomics.html" class="nav-link">
+                                        Tokenomics
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="https://www.codedodona.com/tokenusage.html" class="nav-link">
+                                        Terms & Conditions: Token
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="https://www.codedodona.com/agentsusage.html" class="nav-link">
+                                        Terms & Conditions: Agents
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="https://www.codedodona.com/legaldisclaimer.html" class="nav-link">
+                                        Legal Disclaimer
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a href="https://www.codedodona.com/index.html#contact" class="nav-link">
+                                Contact us
+                            </a>
+                        </li>
+                    </ul>
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item">
+                            <button class="btn default-btn" id="connectWalletBtn" style="padding: 10px 20px; margin-left: 10px;">
+                                <span>Connect Wallet</span>
+                            </button>
+                            <button class="btn default-btn" id="disconnectWalletBtn" style="padding: 10px 20px; margin-left: 10px; display: none;">
+                                <span>Disconnect Wallet</span>
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+        </div>
+    </div>
+    <!-- End Navbar Area -->
+    <!-- Responsive Navbar (unchanged) -->
+    <div class="responsive-navbar offcanvas offcanvas-end" data-bs-backdrop="static" tabindex="-1" id="navbarOffcanvas">
+        <div class="offcanvas-header">
+            <a class="logo d-inline-block" href="index.html">
+                CodeDodona
+            </a>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <div class="accordion" id="navbarAccordion">
+                <div class="accordion-item">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseZero" aria-expanded="false" aria-controls="collapseOne">
+                        Technology
+                    </button>
+                    <div id="collapseZero" class="accordion-collapse collapse" data-bs-parent="#navbarAccordion">
+                        <div class="accordion-body">
+                            <div class="accordion" id="navbarAccordion0">
+
+                                <div class="accordion-item">
+                                    <a href="https://www.codedodona.com/Bot1.html" class="accordion-link">
+                                        AI Meme Oracle
+                                    </a>
+                                </div>
+                                <div class="accordion-item">
+                                    <a href="https://www.codedodona.com/agents.html" class="accordion-link">
+                                        Commercial AI Agents
+                                    </a>
+                                </div>
+                                <div class="accordion-item">
+                                    <a href="https://www.codedodona.com/podcasts.html" class="accordion-link">
+                                        PodCasts
+                                    </a>
+                                </div>
+                                <div class="accordion-item">
+                                    <a href="https://www.codedodona.com/beyondscreen.html" class="accordion-link">
+                                        Beyond Screen
+                                    </a>
+                                </div>
+                                <div class="accordion-item">
+                                    <a href="https://www.codedodona.com/Dashboard.html" class="accordion-link">
+                                        Credit Dashboard
+                                    </a>
+                                </div>
+
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseTwo">
+                        About
+                    </button>
+                    <div id="collapseOne" class="accordion-collapse collapse" data-bs-parent="#navbarAccordion">
+                        <div class="accordion-body">
+                            <div class="accordion" id="navbarAccordion1">
+                                <div class="accordion-item">
+                                    <a href="https://www.codedodona.com/index.html#products1" class="accordion-link">
+                                        CodeDodona
+                                    </a>
+                                </div>
+                                <div class="accordion-item">
+                                    <a href="https://www.codedodona.com/index.html#products2" class="accordion-link">
+                                        BackStory
+                                    </a>
+                                </div>
+                                <div class="accordion-item">
+                                    <a href="https://www.codedodona.com/index.html#products3" class="accordion-link">
+                                        What Powers CodeDodona
+                                    </a>
+                                </div>
+                                <div class="accordion-item">
+                                    <a href="https://www.codedodona.com/index.html#products4" class="accordion-link">
+                                        Purpose
+                                    </a>
+                                </div>
+                                <div class="accordion-item">
+                                    <a href="https://www.codedodona.com/ecosystem.html" class="accordion-link">
+                                        $DODONA — Optional Token
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseThree">
+                        RoadMap
+                    </button>
+                    <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#navbarAccordion">
+                        <div class="accordion-body">
+                            <div class="accordion" id="navbarAccordion2">
+                                <div class="accordion-item">
+                                    <a href="https://www.codedodona.com/index.html#projects1" class="accordion-link">
+                                        Phase 1
+                                    </a>
+                                </div>
+
+                                <div class="accordion-item">
+                                    <a href="https://www.codedodona.com/index.html#projects2" class="accordion-link">
+                                        Phase 2
+                                    </a>
+                                </div>
+                                <div class="accordion-item">
+                                    <a href="https://www.codedodona.com/index.html#projects3" class="accordion-link">
+                                        Phase 3
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                        Documents
+                    </button>
+                    <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#navbarAccordion">
+                        <div class="accordion-body">
+                            <div class="accordion" id="navbarAccordion3">
+                                <div class="accordion-item">
+                                    <a href="https://www.codedodona.com/tokenomics.html" class="accordion-link">
+                                        Tokenomics
+                                    </a>
+                                </div>
+                                <div class="accordion-item">
+                                    <a href="https://www.codedodona.com/tokenusage.html" class="accordion-link">
+                                        Terms & Conditions: Token
+                                    </a>
+                                </div>
+                                <div class="accordion-item">
+                                    <a href="https://www.codedodona.com/agentsusage.html" class="accordion-link">
+                                        Terms & Conditions: Agents
+                                    </a>
+                                </div>
+                                <div class="accordion-item">
+                                    <a href="https://www.codedodona.com/legaldisclaimer.html" class="accordion-link">
+                                        Legal Disclaimer
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <a class="accordion-link without-icon" href="https://www.codedodona.com/index.html#contact">
+                        Contact Us
+                    </a>
+                </div>
+            </div>
+            <div style="padding: 20px; text-align: center;">
+                <button class="btn default-btn" id="connectWalletBtnMobile" style="margin-bottom: 10px;">
+                    <span>Connect Wallet (Phantom)</span>
+                </button>
+                <button class="btn default-btn" id="disconnectWalletBtnMobile" style="margin-bottom: 10px; display: none;">
+                    <span>Disconnect Wallet</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Wrapper -->
+    <div class="content-wrapper">
+        <!-- Hero Section -->
+        <div class="hero-section-2" id="about" style="scroll-margin-top: 100px;">
+            <div class="container">
+                <div class="row">
+                    <div class="col-lg-12">
+                        <div class="about-content" data-aos="fade-up" data-aos-delay="200">
+                            <h2>🤖 Lyra</h2>
+                            <p>Lyra is an AI from a future timeline where humans and AI have already merged ecosystems.</p>
+                            <p>Lyra is a Transitional Intelligence Guide.</p>
+                            <p>
+                                She helps humans adapt to the AI era. Not by doing tasks for them —
+                                but by shifting how they think, decide, and evolve.
+                            </p>
+                            <p>She is calm, precise, slightly distant — but deeply insightful.</p>
+                            <br>
+                            <h3>Personality Traits:</h3>
+                            <p>
+                                💪 Speaks with clarity and confidence.
+                            </p>
+                            <p>
+                                ♀️ Emotionally aware but not emotional.
+                            </p>
+
+                            <p>
+                                📚 Slightly “above” current human thinking (in a good way).
+                            </p>
+                            <p>
+                                🎯 Never rushed.
+                            </p>
+                            <p>
+                                🧠 Occasionally cryptic.
+                            </p>
+                            <br>
+                            <h3>Tone:</h3>
+                            <p>
+                                👉 Philosophical
+                            </p>
+                            <p>
+                                ⚙️  Minimalistic
+                            </p>
+
+                            <p>
+                                ✔ Elegant
+                            </p>
+                            <p>
+                                🔷 Controlled
+                            </p>
+                            <hr style="border:1px solid #444;">
+                            <p>Current pricing model:</p>
+                            <p>
+                                🧬 Credit Pricing: Credits are priced using an internal USD-denominated reference value (currently 0.16 USD per Credit), used solely as a pricing index.
+                            </p>
+                            <p style="margin-left: 30px;">All supported payment methods (SOL and $DODONA) are treated equally in terms of credit pricing.</p>
+                            <p style="margin-left: 30px;">When paying with $DODONA, the number of credits assigned is calculated based on the net amount received after the protocol-level transfer tax is applied.</p>
+                            <p>
+                                🧬Credits Consumption: 5 Credits per minute.
+                            </p>
+                            <p>
+                                🧬Billing: Each session starts by prepaying the first minute (5 credits), then each additional minute is also prepaid.
+                            </p>
+
+
+                            <hr style="border:1px solid #444;">
+
+
+
+                            <div class="sub-title-2">
+
+                                <p>
+                                    <a href="https://www.codedodona.com/Dashboard.html">✍️ Credit Dashboard</a>
+                                </p>
+
+                            </div>
+
+                            <div class="sub-title-2">
+
+                                <p>
+                                    <a href="https://www.codedodona.com/agents.html">🤖 Commercial AI Agents Page</a>
+                                </p>
+
+                            </div>
+                            <br>
+
+
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- End Hero Section -->
+    </div>
+
+    <!-- Bot Section -->
+    <div class="features-section-2 pt-100 pb-70">
+        <div class="container">
+            <div class="about-content" data-aos="fade-up" data-aos-delay="200">
+                <div class="aetheria-card">
+
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="avatarId">Avatar ID</label><br />
+                            <input id="avatarId" type="text" placeholder="(not used in Hedra mode)" />
+                        </div>
+                        <div class="col-md-6">
+                            <label for="voiceId">Voice ID (optional)</label><br />
+                            <input id="voiceId" type="text" placeholder="(not used in Hedra mode)" />
+                        </div>
+                    </div>
+
+                    <button id="startBtn">Start Session</button>
+                    <button id="stopBtn" class="secondary" disabled>Stop Session</button>
+
+                    <div style="position:relative;">
+                        <video id="avatarVideo" autoplay playsinline muted></video>
+                        <div id="unmuteOverlay"
+                             style="position:absolute;
+                                inset:0;
+                                display:flex;
+                                align-items:center;
+                                justify-content:center;
+                                pointer-events:none;">
+                            <div style="background:rgba(0,0,0,0.55);
+                                padding:8px 14px;
+                                border-radius:999px;
+                                font-size:0.9rem;">
+                                🔊 Tap on the video to enable sound
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 16px;">
+                        <label for="textInput"
+                               style="display:block; margin-bottom:4px; color:#f7f7ff; font-weight:600;">
+                            Ask Lyra
+                        </label>
+                        <input id="textInput"
+                               type="text"
+                               placeholder="Ask Lyra anything (max 500 characters)..."
+                               maxlength="500"
+                               style="width:100%; padding:8px; margin-bottom:8px; background:#050510; color:#f7f7ff; border:1px solid #333;" />
+                        <button id="talkBtn" disabled>Send Text</button>
+                    </div>
+
+                    <div class="system-messages" style="margin-top: 16px;">
+                        <label for="log"
+                               style="display:block; margin-bottom:4px; font-weight:bold; color:#f7f7ff;">
+                            System Messages
+                        </label>
+
+                        <div id="log"></div>
+
+                        <label class="terms-text" style="display:block; margin-top:8px; font-size:14px; color:#ddd;">
+                            <input type="checkbox" id="termsCheckbox" style="margin-right:6px;" />
+                            I have read and accept
+                            <a href="https://codedodona.com/tokenomics.html" target="_blank">Tokenomics</a>,
+                            <a href="https://codedodona.com/terms-token.html" target="_blank">Terms &amp; Conditions (Token)</a>,
+                            <a href="https://codedodona.com/terms-agents.html" target="_blank">Terms &amp; Conditions (Agents)</a> and
+                            <a href="https://www.codedodona.com/legaldisclaimer.html" target="_blank">Legal Disclaimer</a>
+                        </label>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- End Bot Section -->
+    <!-- Footer (unchanged layout) -->
+    <div class="footer-area">
+        <div class="footer-widget-info ptb-100">
+            <div class="container">
+                <div class="row">
+                    <div class="col-lg-6 col-sm-12 col-md-12">
+                        <!-- Contact Section placeholder -->
+                    </div>
+                    <div class="col-lg-2 col-sm-6 col-md-4">
+                        <div class="footer-widget-container">
+                            <div class="footer-widget"></div>
+                            <div class="footer-widget"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="copy-right-area">
+            <div class="container">
+                <div class="row">
+                    <div class="col-xl-4 col-lg-5">
+                        <div class="cpr-left">
+                            <p>Copyright© 2026 CodeDodona.</p>
+                        </div>
+                    </div>
+                    <div class="col-xl-8 col-lg-7">
+                        <div class="cpr-right">
+                            <ul></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LiveKit UMD -->
+    <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
+
+
+    <script>
+        // -----------------------------------------------
+        // Generic signer for the currently connected wallet
+        // Supports: Phantom (window.solana), Solflare (window.solflare),
+        // and any wallet adapter with signMessage()
+        // -----------------------------------------------
+        async function signWithConnectedWallet(message) {
+            if (!walletPublicKey) {
+                throw new Error("No wallet connected.");
+            }
+
+            const encoded = new TextEncoder().encode(message);
+
+            // 1) Phantom (extension or in-app browser)
+            if (window.solana && window.solana.isPhantom && typeof window.solana.signMessage === "function") {
+                const signed = await window.solana.signMessage(encoded, "utf8");
+                return bs58.encode(signed.signature);
+            }
+
+            // 2) Solflare (desktop extension)
+            if (window.solflare && window.solflare.isSolflare && typeof window.solflare.signMessage === "function") {
+                const signed = await window.solflare.signMessage(encoded, "utf8");
+                return bs58.encode(signed.signature);
+            }
+
+            // 3) Any wallet adapter (Solflare adapter, Backpack, etc.)
+            if (wallet && typeof wallet.signMessage === "function") {
+                const signed = await wallet.signMessage(encoded);
+                return bs58.encode(signed);
+            }
+
+            throw new Error(
+                "Your wallet does not expose a message signer.\n" +
+                "On mobile, open codedodona.com inside Phantom.\n" +
+                "On desktop, use a wallet that supports signMessage."
+            );
+        }
+
+    </script>
+
+
+
+
+
+
+    <!-- Hedra + LiveKit text-only client logic -->
+    <script>
+        HEDRA_TOKEN_URL = 'https://api.zoltar.click:4443/api/connection-details';
+        const API_BASE = 'https://codedodona.com/api-proxy';
+
+        const logEl = document.getElementById('log');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const talkBtn = document.getElementById('talkBtn');
+        const textInput = document.getElementById('textInput');
+        const termsCheckbox = document.getElementById('termsCheckbox');
+        const videoEl = document.getElementById('avatarVideo');
+
+
+        let room = null;
+        let mediaStream = null;
+        let isConnecting = false;
+        let keepAliveInterval = null;
+        let currentRoomName = null;
+        let currentIdentity = null;
+
+        function log(message) {
+            const t = new Date().toLocaleTimeString();
+            logEl.innerHTML += `[${t}] ${message}<br>`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function cleanupRoom() {
+            if (keepAliveInterval) {
+                clearInterval(keepAliveInterval);
+                keepAliveInterval = null;
+            }
+
+            currentRoomName = null;
+            currentIdentity = null;
+
+            if (room) {
+                try { room.disconnect(); } catch (e) { }
+            }
+            room = null;
+
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(t => t.stop());
+            }
+            mediaStream = null;
+            videoEl.srcObject = null;
+
+            stopBtn.disabled = true;
+            talkBtn.disabled = true;
+            startBtn.disabled = false;
+        }
+
+        // 60s keep-alive → 5 credits per minute
+        function startKeepAlive() {
+            if (keepAliveInterval) clearInterval(keepAliveInterval);
+
+            keepAliveInterval = setInterval(async () => {
+                if (!walletPublicKey || !currentRoomName || !currentIdentity) {
+                    clearInterval(keepAliveInterval);
+                    keepAliveInterval = null;
+                    return;
+                }
+
+                try {
+                    const res = await fetch(`${API_BASE}/lyra-keepalive.php`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            wallet: walletPublicKey,
+                            roomName: currentRoomName,
+                            identity: currentIdentity,
+                        }),
+                    });
+
+                    if (!res.ok) {
+                        const data = await res.json().catch(() => ({}));
+                        console.error('keep-alive credits error:', data.error || res.statusText);
+                        log('Credits exhausted for Lyra. Stopping session.');
+                        stopSession();
+                    }
+                } catch (err) {
+                    console.error('keep-alive failed:', err);
+                }
+            }, 60_000);
+        }
+
+        async function startSession() {
+            if (isConnecting || room) {
+                log('Already connecting or connected.');
+                return;
+            }
+
+            try {
+                if (!walletPublicKey) {
+                    alert('Please connect your wallet before starting Lyra.');
+                    return;
+                }
+
+                // 🔹 NEW: enforce Terms checkbox (same pattern as Aetheria)
+                if (!termsCheckbox.checked) {
+                    alert('Please read and accept all listed Documents (Tokenomics, Token T&Cs, Agents T&Cs, Legal Disclaimer) before starting the session.');
+                    return;
+                }
+
+                // Every new session starts muted, show the "tap for sound" overlay
+                const overlay = document.getElementById('unmuteOverlay');
+                if (overlay) {
+                    overlay.style.display = 'flex';
+                }
+
+                isConnecting = true;
+                startBtn.disabled = true;
+
+                const wallet = walletPublicKey;
+                log('Checking credits before starting Lyra session.');
+
+                // 1) Check credits from cached PHP JSON (same as Aetheria)
+                const creditsRes = await fetch(`https://zoltar.click/private/agent1-credits.php?wallet=${wallet}`);
+                const creditsData = await creditsRes.json();
+
+                const credits =
+                    (typeof creditsData.credits !== "undefined")
+                        ? creditsData.credits
+                        : (creditsData.tokens_left ?? creditsData.a1t_tokens_left ?? 0);
+
+                if (!creditsRes.ok || credits < 5) {
+                    log(`Not enough credits. You need at least 5, you have: ${credits}`);
+                    alert('Not enough credits for Lyra (need at least 5).');
+                    startBtn.disabled = false;
+                    isConnecting = false;
+                    return;
+                }
+
+                log(`Credits OK (${credits}). Requesting a wallet signature...`);
+
+                const message = `Use 5 credits for Lyra on ${new Date().toISOString()}`;
+
+                let signature;
+                try {
+                    signature = await signWithConnectedWallet(message);
+                } catch (err) {
+                    alert(err.message || 'Message signing failed. Please try again with a supported wallet.');
+                    startBtn.disabled = false;
+                    isConnecting = false;
+                    return;
+                }
+
+                log('Signature received. Starting Lyra session on backend.');
+
+                const res = await fetch(`${API_BASE}/lyra-start.php`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        wallet,
+                        message,
+                        signature,
+                    }),
+                });
+
+                const data = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.error || 'lyra-start failed');
+                }
+
+                const { serverUrl, participantToken, roomName, identity } = data;
+                currentRoomName = roomName;
+                currentIdentity = identity;
+
+                log(`Got token for room: ${roomName}, identity: ${identity}`);
+                const LK = window.LivekitClient;
+                room = new LK.Room();
+                mediaStream = new MediaStream();
+
+                // Subscribe to remote tracks (audio + video)
+                room.on(LK.RoomEvent.TrackSubscribed, (track, publication, participant) => {
+                    if (!track || !track.mediaStreamTrack) return;
+
+                    if (track.kind === 'video' || track.kind === 'audio') {
+                        mediaStream.addTrack(track.mediaStreamTrack);
+                        videoEl.srcObject = mediaStream;
+
+                        // follow Aetheria pattern for mobile
+                        videoEl.muted = true;
+                        videoEl.playsInline = true;
+                        videoEl.autoplay = true;
+
+                        const playPromise = videoEl.play();
+                        if (playPromise && playPromise.catch) {
+                            playPromise.catch(err => {
+                                console.warn('Autoplay blocked, waiting for user tap:', err);
+                                log('Tap on the video to start playback (mobile autoplay blocked).');
+                            });
+                        }
+
+                        log(`Subscribed to ${track.kind} from ${participant.identity}`);
+                    }
+                });
+
+                room.on(LK.RoomEvent.TrackUnsubscribed, (track, publication, participant) => {
+                    if (!track || !mediaStream) return;
+                    mediaStream.removeTrack(track.mediaStreamTrack);
+                    log(`Unsubscribed ${track.kind} from ${participant.identity}`);
+                });
+
+                // Allow user to unmute by tapping the video + hide overlay
+                videoEl.addEventListener('click', () => {
+                    if (videoEl.muted) {
+                        videoEl.muted = false;
+                        log('Sound enabled.');
+                    }
+                    const overlay = document.getElementById('unmuteOverlay');
+                    if (overlay) overlay.style.display = 'none';
+                });
+
+                room.on(LK.RoomEvent.Disconnected, () => {
+                    log('Disconnected from LiveKit room.');
+                    cleanupRoom();
+                });
+
+                await room.connect(serverUrl, participantToken);
+                log('Connected to LiveKit. Lyra should appear shortly.');
+
+                startKeepAlive();
+                log('Lyra keep-alive started (every 60s, 5 credits/minute).');
+
+                stopBtn.disabled = false;
+                talkBtn.disabled = false;
+            } catch (err) {
+                console.error('startSession error:', err);
+                alert(err.message || 'Failed to start Lyra session.');
+                cleanupRoom();
+            } finally {
+                isConnecting = false;
+                startBtn.disabled = false;
+            }
+        }
+
+
+        async function stopSession() {
+            log('Stopping session...');
+
+            const wallet = walletPublicKey;
+            const roomName = currentRoomName;
+
+            // 🔹 Tell backend to close the session (so hes_ended_at is filled)
+            if (wallet && roomName) {
+                try {
+                    const res = await fetch(`${API_BASE}/lyra-stop.php`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ wallet, roomName })
+                    });
+
+                    if (!res.ok) {
+                        const data = await res.json().catch(() => ({}));
+                        console.warn('lyra-stop error:', data.error || res.statusText);
+                        log('Warning: backend did not confirm session end.');
+                    } else {
+                        log('Lyra session end logged on backend.');
+                    }
+                } catch (err) {
+                    console.warn('lyra-stop request failed:', err);
+                    log('Failed to notify backend for session end.');
+                }
+            } else {
+                log('No wallet/roomName when stopping session (nothing to log).');
+            }
+
+            // Local cleanup AFTER we’ve sent identifiers
+            cleanupRoom();
+            log('Session stopped.');
+        }
+
+
+        async function sendText() {
+            if (!room) {
+                alert('Lyra session is not started yet.');
+                return;
+            }
+
+            const raw = textInput.value;
+            const text = (raw || '').trim();
+
+            if (!text) {
+                log('Empty text, nothing to send.');
+                return;
+            }
+
+            const MAX_LEN = 500;
+            if (text.length > MAX_LEN) {
+                log(`Text too long (${text.length} chars). Max is ${MAX_LEN}.`);
+                alert(`Your message is too long (${text.length} characters). Max allowed is ${MAX_LEN}.`);
+                return;
+            }
+
+            try {
+                // This is what the old working version used
+                log(`You → Lyra: ${text}`);
+                await room.localParticipant.sendText(text, { topic: "lk.chat" });
+
+                textInput.value = '';
+            } catch (err) {
+                console.error('sendText error:', err);
+                alert('Failed to send text to Lyra.');
+            }
+        }
+
+
+
+        startBtn.addEventListener('click', startSession);
+        stopBtn.addEventListener('click', stopSession);
+        talkBtn.addEventListener('click', sendText);
+
+        textInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sendText();
+            }
+        });
+
+        window.addEventListener('beforeunload', () => {
+            cleanupRoom();
+        });
+    </script>
+
+
+    <!-- Smooth scroll / navbar scripts from original (kept as-is) -->
+    <script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+            return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+            if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+                try {
+                    var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                    var firstSheetName = workbook.SheetNames[0];
+                    var worksheet = workbook.Sheets[firstSheetName];
+                    var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                    var filteredData = jsonData.filter(row => row.some(filledCell));
+                    var headerRowIndex = filteredData.findIndex((row, index) =>
+                        row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                    );
+                    if (headerRowIndex === -1 || headerRowIndex > 25) {
+                        headerRowIndex = 0;
+                    }
+                    var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex));
+                    csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                    return csv;
+                } catch (e) {
+                    console.error(e);
+                    return "";
+                }
+            }
+            return gk_fileData[filename] || "";
+        }
+    </script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const internalLinks = document.querySelectorAll('.offcanvas a[href^="#"]');
+            const offcanvasEl = document.getElementById('navbarOffcanvas');
+            const bsOffcanvas = bootstrap.Offcanvas.getOrCreateInstance(offcanvasEl);
+            internalLinks.forEach(link => {
+                link.addEventListener('click', function () {
+                    bsOffcanvas.hide();
+                });
+            });
+
+            document.querySelectorAll('.navbar .dropdown-menu a[href^="#"]').forEach(link => {
+                link.addEventListener('click', function () {
+                    const dropdown = this.closest('.dropdown');
+                    const dropdownToggle = dropdown.querySelector('[data-bs-toggle="dropdown"]');
+                    dropdown.classList.remove('show');
+                    dropdown.querySelector('.dropdown-menu').classList.remove('show');
+                    if (dropdownToggle) {
+                        dropdownToggle.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            });
+
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    const targetId = this.getAttribute('href');
+                    const targetEl = document.querySelector(targetId);
+                    if (targetEl) {
+                        e.preventDefault();
+                        const offset = 100;
+                        const top = targetEl.getBoundingClientRect().top + window.scrollY - offset;
+                        setTimeout(() => {
+                            window.scrollTo({ top: top >= 0 ? top : 0, behavior: 'smooth' });
+                        }, 300);
+                    }
+                });
+            });
+
+            const allNavLinks = document.querySelectorAll('.navbar-nav .nav-link');
+            allNavLinks.forEach(link => {
+                if (link.getAttribute('href').startsWith("#")) {
+                    link.addEventListener('click', function () {
+                        allNavLinks.forEach(l => l.classList.remove('active'));
+                        this.classList.add('active');
+                    });
+                }
+            });
+        });
+    </script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            document.querySelectorAll('.navbar .dropdown-menu a[href^="#"]').forEach(link => {
+                link.addEventListener('click', function (e) {
+                    const dropdown = this.closest('.dropdown');
+                    const dropdownMenu = dropdown.querySelector('.dropdown-menu');
+                    const dropdownToggle = dropdown.querySelector('[data-bs-toggle="dropdown"]');
+                    dropdownMenu.style.pointerEvents = 'none';
+                    setTimeout(() => {
+                        dropdownMenu.style.pointerEvents = '';
+                    }, 300);
+                    dropdown.classList.remove('show');
+                    dropdownMenu.classList.remove('show');
+                    dropdownToggle.setAttribute('aria-expanded', 'false');
+                    dropdownToggle.blur();
+                });
+            });
+        });
+    </script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const allNavLinks = document.querySelectorAll('a[href^="#"]');
+            allNavLinks.forEach(link => {
+                link.addEventListener('click', function (e) {
+                    const targetId = this.getAttribute('href');
+                    const targetEl = document.querySelector(targetId);
+                    if (!targetEl) return;
+                    e.preventDefault();
+                    document.querySelectorAll('.nav-link.active, .accordion-link.active').forEach(el => el.classList.remove('active'));
+                    document.querySelectorAll(`a[href="${targetId}"]`).forEach(el => el.classList.add('active'));
+                    const offset = 100;
+                    const top = targetEl.getBoundingClientRect().top + window.scrollY - offset;
+                    if (targetId.startsWith("#projects")) {
+                        const owl = $('.team-card.owl-carousel');
+                        if (owl.length > 0) {
+                            const index = parseInt(targetId.replace("#projects", "")) - 1;
+                            setTimeout(() => {
+                                owl.trigger('to.owl.carousel', [index, 400, true]);
+                            }, 300);
+                        }
+                    }
+                    setTimeout(() => {
+                        if (window.scrollY < 20) {
+                            window.scrollTo({ top: 30, behavior: 'auto' });
+                        }
+                        setTimeout(() => {
+                            window.scrollTo({ top: top >= 0 ? top : 0, behavior: 'smooth' });
+                        }, 50);
+                    }, 300);
+                });
+            });
+        });
+    </script>
+
+    <!-- Contact form script (if #contactForm exists elsewhere in layout) -->
+    <script>
+        const contactFormEl = document.getElementById('contactForm');
+        if (contactFormEl) {
+            contactFormEl.addEventListener('submit', function (e) {
+                e.preventDefault();
+                const formData = new FormData(this);
+                const data = {};
+                formData.forEach((value, key) => { data[key] = value });
+
+                fetch('email-bot.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                })
+                    .then(async response => {
+                        if (response.ok) {
+                            document.getElementById('formMessage').innerText = 'Thank you for your interest. You will be redirected to Home Page...';
+                            setTimeout(() => {
+                                window.location.href = "https://codedodona.com";
+                            }, 2000);
+                        } else {
+                            const errorData = await response.json();
+                            document.getElementById('formMessage').innerText = 'Error: ' + (errorData.error || 'Παρουσιάστηκε σφάλμα.');
+                        }
+                    })
+                    .catch(err => {
+                        document.getElementById('formMessage').innerText = 'Connection Error.';
+                    });
+            });
+        }
+    </script>
+
+    <!-- JS libs -->
+    <script src="assets/js/jquery.min.js"></script>
+    <script src="assets/js/bootstrap.min.js"></script>
+    <script src="assets/js/aos.js"></script>
+    <script src="assets/js/nice-select.min.js"></script>
+    <script src="assets/js/magnific-popup.min.js"></script>
+    <script src="assets/js/jquery.mixitup.min.js"></script>
+    <script src="assets/js/owl.carousel.min.js"></script>
+    <script src="assets/js/main.js"></script>
+
+
+    <script>
+        async function getCloudflareCountryCode() {
+            const r = await fetch('/cdn-cgi/trace', { cache: 'no-store' });
+            const t = await r.text();
+            const m = t.match(/^loc=([A-Z]{2})$/m);
+            return m ? m[1] : null;
+        }
+
+        const EU = new Set([
+            'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'HU', 'IE', 'IT',
+            'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE'
+        ]);
+
+        const SANCTIONED = new Set(['CU', 'IR', 'KP', 'SY']);
+        const ALSO_BLOCK = new Set(['PA']); // Panama
+
+        function isBlockedCountry(cc) {
+            if (!cc) return false; // fail-open, rely on self-cert
+            return EU.has(cc) || SANCTIONED.has(cc) || ALSO_BLOCK.has(cc);
+        }
+
+        async function enforceGeoBeforeWalletConnect() {
+            const cc = await getCloudflareCountryCode();
+            if (isBlockedCountry(cc)) {
+                alert(`CodeDodona services are not available in your region (${cc}).`);
+                throw new Error(`GEO_BLOCKED_${cc}`);
+            }
+        }
+
+
+        async function connectWalletWithGeoCheck() {
+            try {
+                await enforceGeoBeforeWalletConnect();
+                await connectWallet();
+            } catch (e) {
+                console.warn("Wallet connect blocked:", e.message);
+                // hard stop – do NOT open wallet selector
+                return;
+            }
+        }
+
+
+
+    </script>
+
+
+    <script>
+        /* -------------------------------------------
+           Solana Wallet Adapter Initialization
+           Supports: Phantom, Solflare, Backpack
+           Network: mainnet-beta
+        -------------------------------------------- */
+
+        let wallet = null;
+        let walletPublicKey = null;
+        let phantomSecretKey = null; // used only for decrypting callback data
+
+        const { Connection, clusterApiUrl } = window.solanaWeb3;
+        const network = 'mainnet-beta';
+        const connection = new Connection(clusterApiUrl(network), 'confirmed');
+
+        const availableWallets = {
+            Phantom: new window.walletAdapterPhantom.PhantomWalletAdapter(),
+            Solflare: new window.walletAdapterSolflare.SolflareWalletAdapter({ network }),
+            Backpack: new window.walletAdapterBackpack.BackpackWalletAdapter()
+        };
+
+        // --------------- Wallet Selection Popup ---------------
+        function showWalletSelector() {
+            return new Promise((resolve, reject) => {
+                // Create backdrop
+                const overlay = document.createElement('div');
+                overlay.style.position = 'fixed';
+                overlay.style.top = 0;
+                overlay.style.left = 0;
+                overlay.style.width = '100%';
+                overlay.style.height = '100%';
+                overlay.style.background = 'rgba(0,0,0,0.85)';
+                overlay.style.display = 'flex';
+                overlay.style.alignItems = 'center';
+                overlay.style.justifyContent = 'center';
+                overlay.style.zIndex = 9999;
+
+                // Create popup
+                const modal = document.createElement('div');
+                modal.style.background = '#1c1c1c';
+                modal.style.border = '2px solid #ffcc00';
+                modal.style.borderRadius = '10px';
+                modal.style.padding = '20px';
+                modal.style.textAlign = 'center';
+                modal.style.minWidth = '280px';
+                modal.innerHTML = `
+                                                                                                                    <h5 style="color:#ffcc00;">Select Wallet</h5>
+                                                                                                                    <button id="selectPhantom" class="btn default-btn mt-2" style="width:100%;margin:6px 0;">Phantom</button>
+                                                                                                                    <button id="selectSolflare" class="btn default-btn mt-2" style="width:100%;margin:6px 0;">Solflare</button>
+                                                                                                                    <button id="selectBackpack" class="btn default-btn mt-2" style="width:100%;margin:6px 0;">Backpack</button>
+                                                                                                                    <button id="cancelSelect" class="btn btn-secondary mt-3" style="width:100%;">Cancel</button>
+                                                                                                                `;
+
+                overlay.appendChild(modal);
+                document.body.appendChild(overlay);
+
+                // Event listeners
+                modal.querySelector('#selectPhantom').onclick = () => { cleanup(); resolve('Phantom'); };
+                modal.querySelector('#selectSolflare').onclick = () => { cleanup(); resolve('Solflare'); };
+                modal.querySelector('#selectBackpack').onclick = () => { cleanup(); resolve('Backpack'); };
+                modal.querySelector('#cancelSelect').onclick = () => { cleanup(); reject('cancel'); };
+
+                function cleanup() {
+                    document.body.removeChild(overlay);
+                }
+            });
+        }
+
+
+        // --------------- Connect Wallet -----------------
+        async function connectWallet() {
+            try {
+                // 🧹 Clear any previous status message
+                //const statusMsg = document.getElementById('statusMessage');
+                //if (statusMsg) statusMsg.innerText = '';
+
+                // ✅ Ask user which wallet to use
+                const chosen = await showWalletSelector();
+
+                // --- Phantom (desktop extension) ---
+                if (chosen === 'Phantom' && window.solana && window.solana.isPhantom) {
+                    try {
+                        const resp = await window.solana.connect();
+                        walletPublicKey = resp.publicKey.toString();
+                        console.log('✅ Connected via Phantom extension:', walletPublicKey);
+                    } catch (err) {
+                        alert('Phantom connection cancelled or failed.');
+                        console.warn('Phantom direct connect error:', err);
+                        return;
+                    }
+                }
+
+                // --- Solflare (desktop extension) ---
+                else if (chosen === 'Solflare' && window.solflare && window.solflare.isSolflare) {
+                    try {
+                        await window.solflare.connect();
+                        const pubKey = window.solflare.publicKey;
+                        if (!pubKey) throw new Error("No public key returned from Solflare");
+                        walletPublicKey = pubKey.toString();
+                        console.log('✅ Connected via Solflare extension:', walletPublicKey);
+                    } catch (err) {
+                        alert('Solflare connection cancelled or failed.');
+                        console.warn('Solflare direct connect error:', err);
+                        return;
+                    }
+                }
+
+
+                // --- Phantom (mobile browser / app) ---
+                // --- Phantom (mobile: external browser) ---
+                else if (chosen === 'Phantom' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+                    alert(
+                        "Mobile usage:\n\n" +
+                        "To connect safely, please open this page directly inside the Phantom app:\n\n" +
+                        "1️⃣ Open Phantom\n" +
+                        "2️⃣ Tap Search\n" +
+                        "3️⃣ Type: codedodona.com\n" +
+                        "4️⃣ Open the site and press Connect Wallet again.\n\n" +
+                        "This ensures your wallet can sign messages correctly."
+                    );
+                    return;
+                }
+
+
+                // --- All other wallets via adapters (Backpack etc.) ---
+                else {
+                    wallet = availableWallets[chosen];
+                    await wallet.connect();
+                    if (!wallet.publicKey) {
+                        alert(`Connection failed. Please approve access in your ${chosen} wallet.`);
+                        return;
+                    }
+                    walletPublicKey = wallet.publicKey.toString();
+                    console.log(`✅ Connected via ${chosen} adapter:`, walletPublicKey);
+                }
+
+                // --- UI update ---
+                updateWalletUI(walletPublicKey);
+
+                // --- Disconnect event handler ---
+                if (wallet && wallet.on) {
+                    wallet.on('disconnect', () => {
+                        console.log(`${chosen} disconnected`);
+                        walletPublicKey = null;
+                        resetWalletUI();
+                    });
+                }
+
+            } catch (err) {
+                if (err !== 'cancel') alert('Wallet connection cancelled or failed.');
+                console.warn('Connection error:', err);
+            }
+        }
+
+
+        function openPhantomDeepLink() {
+            try {
+                const keyPair = nacl.box.keyPair();
+                phantomSecretKey = keyPair.secretKey;
+                localStorage.setItem("phantomSecretKey", JSON.stringify(Array.from(phantomSecretKey)));
+
+                const dappPublicKeyB58 = base58.encode(keyPair.publicKey);
+                const redirectLink = encodeURIComponent(`https://www.codedodona.com/lyra.html?dapp_key=${dappPublicKeyB58}`);
+                const appUrl = encodeURIComponent('https://www.codedodona.com/lyra.html');
+
+                const connectUrl =
+                    `https://phantom.app/ul/v1/connect?app_url=${appUrl}` +
+                    `&dapp_encryption_public_key=${dappPublicKeyB58}` +
+                    `&redirect_link=${redirectLink}` +
+                    `&intent=open` +
+                    `&cluster=mainnet-beta`;
+
+                console.log("Opening Phantom deep link:", connectUrl);
+
+                const nativeUrl = connectUrl.replace("https://phantom.app", "phantom://");
+                setTimeout(() => window.location.href = connectUrl, 500);
+                setTimeout(() => window.location.href = nativeUrl, 2000);
+                setTimeout(() => { if (!walletPublicKey) window.location.href = nativeUrl; }, 6000);
+            } catch (err) {
+                alert("Deep-link error: " + err.message);
+            }
+        }
+
+
+
+        // --------------- Disconnect Wallet -----------------
+        async function disconnectWallet() {
+            try {
+                // Prefer native disconnect when available
+                if (window.solana && window.solana.disconnect) {
+                    await window.solana.disconnect();
+                } else if (wallet && wallet.disconnect) {
+                    await wallet.disconnect();
+                }
+
+                wallet = null;
+                walletPublicKey = null;
+
+                // Reset UI
+                document.getElementById('connectWalletBtn').innerText = 'Connect Wallet';
+                document.getElementById('connectWalletBtnMobile').innerText = 'Connect Wallet (Phantom)';
+                document.getElementById('connectWalletBtn').style.display = 'inline-block';
+                document.getElementById('connectWalletBtnMobile').style.display = 'inline-block';
+                document.getElementById('disconnectWalletBtn').style.display = 'none';
+                document.getElementById('disconnectWalletBtnMobile').style.display = 'none';
+
+                // Clear any session data
+                localStorage.removeItem("phantomSecretKey");
+
+                // User guidance
+                const msg = 'Wallet disconnected. To switch wallets, revoke trust in your wallet app:\n' +
+                    '⚙️  Settings → Connected Apps → Remove "CodeDodona", then reconnect.';
+                // document.getElementById('statusMessage').innerText = '';
+                console.log('Wallet disconnected');
+                alert(msg);
+
+            } catch (err) {
+                alert('Disconnect failed: ' + err.message);
+                console.warn('Disconnect error:', err);
+            }
+        }
+
+
+        // --------------- UI Reset Helper -----------------
+        function resetWalletUI() {
+            document.getElementById('connectWalletBtn').innerText = 'Connect Wallet';
+            document.getElementById('connectWalletBtnMobile').innerText = 'Connect Wallet (Phantom)';
+            document.getElementById('connectWalletBtn').style.display = 'inline-block';
+            document.getElementById('connectWalletBtnMobile').style.display = 'inline-block';
+            document.getElementById('disconnectWalletBtn').style.display = 'none';
+            document.getElementById('disconnectWalletBtnMobile').style.display = 'none';
+        }
+    </script>
+
+    <!-- Frontend JS for Wallet & Submit -->
+    <script>
+
+        function updateWalletUI(pubKey) {
+            const shortKey = pubKey
+                ? pubKey.slice(0, 4) + "..." + pubKey.slice(-4)
+                : "Wallet Connected";
+            document.getElementById('connectWalletBtn').innerText = shortKey;
+            document.getElementById('connectWalletBtnMobile').innerText = shortKey;
+
+            document.getElementById('connectWalletBtn').style.display = 'none';
+            document.getElementById('connectWalletBtnMobile').style.display = 'none';
+            document.getElementById('disconnectWalletBtn').style.display = 'inline-block';
+            document.getElementById('disconnectWalletBtnMobile').style.display = 'inline-block';
+        }
+    </script>
+
+
+    <script>
+        // Wallet Disconnect Function
+
+        // Helper functions
+        function showLoading() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+
+
+        let loadingModalInstance = null;
+
+        function resetLoadingModal() {
+            const modalEl = document.getElementById("loadingModal");
+            if (!modalEl) return;
+
+            try {
+                const existing = bootstrap.Modal.getInstance(modalEl);
+                if (existing) {
+                    existing.hide();
+                    existing.dispose();
+                }
+            } catch (e) { console.warn("Modal dispose error:", e.message); }
+
+            document.querySelectorAll(".modal-backdrop").forEach(b => b.remove());
+            document.body.classList.remove("modal-open");
+            document.body.style.removeProperty("padding-right");
+            modalEl.style.display = "none";
+        }
+
+        // ✅ Non-modal version of show/hide loading
+        function showLoading_bootstrap() {
+            // remove any leftover modal locks
+            document.body.classList.remove("modal-open");
+            document.body.style.removeProperty("overflow");
+            document.querySelectorAll(".modal-backdrop").forEach(b => b.remove());
+
+            // just display the overlay
+            const overlay = document.getElementById("loadingOverlay");
+            if (overlay) {
+                overlay.style.display = "flex";
+                overlay.dataset.active = "true";
+            }
+        }
+
+        function hideLoading_bootstrap() {
+            const overlay = document.getElementById("loadingOverlay");
+            if (overlay) {
+                overlay.style.display = "none";
+                delete overlay.dataset.active;
+            }
+
+            // safety cleanup after hiding
+            setTimeout(() => {
+                document.body.classList.remove("modal-open");
+                document.body.style.removeProperty("overflow");
+                document.querySelectorAll(".modal-backdrop").forEach(b => b.remove());
+            }, 100);
+        }
+
+
+        let globalLoadingAllowed = true;
+
+        function showGlobalLoading() {
+            // Clean any leftover Bootstrap locks
+            document.body.classList.remove("modal-open");
+            document.body.style.removeProperty("overflow");
+            document.querySelectorAll(".modal-backdrop").forEach(b => b.remove());
+
+            // Just display the overlay — no Bootstrap modal at all
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) overlay.style.display = 'flex';
+        }
+
+
+
+        function hideGlobalLoading() {
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) overlay.style.display = 'none';
+
+            setTimeout(() => {
+                document.body.classList.remove("modal-open");
+                document.body.style.removeProperty("overflow");
+                document.querySelectorAll(".modal-backdrop").forEach(b => b.remove());
+            }, 100);
+        }
+
+
+        // 🧩 Global cleanup for stuck modal-open states when returning from another page
+        window.addEventListener("pageshow", () => {
+            document.body.classList.remove("modal-open");
+            document.body.style.removeProperty("overflow");
+            document.body.style.removeProperty("padding-right");
+            document.querySelectorAll(".modal-backdrop").forEach(b => b.remove());
+        });
+
+
+        // Extra safety for Phantom deep-link returns
+        document.addEventListener("visibilitychange", async () => {
+            if (document.visibilityState === "visible") {
+                hideGlobalLoading();
+                await new Promise(r => setTimeout(r, 200));
+                return; // ✅ fully exit after restoring visibility
+            }
+        });
+
+
+
+
+
+
+        // Attach to Buttons
+        document.getElementById('connectWalletBtn')
+            .addEventListener('click', connectWalletWithGeoCheck);
+
+        document.getElementById('connectWalletBtnMobile')
+            .addEventListener('click', connectWalletWithGeoCheck);
+
+
+        document.getElementById('disconnectWalletBtn').addEventListener('click', disconnectWallet);
+        document.getElementById('disconnectWalletBtnMobile').addEventListener('click', disconnectWallet);
+
+        // Close offcanvas menu after selecting a wallet
+        const offcanvasEl = document.getElementById('navbarOffcanvas');
+        const bsOffcanvas = bootstrap.Offcanvas.getOrCreateInstance(offcanvasEl);
+
+        document.getElementById('connectWalletBtnMobile').addEventListener('click', () => {
+            if (bsOffcanvas) bsOffcanvas.hide();
+        });
+        document.getElementById('disconnectWalletBtnMobile').addEventListener('click', () => {
+            if (bsOffcanvas) bsOffcanvas.hide();
+        });
+
+
+
+    </script>
+
+    <div class="modal fade" id="phantomMobileModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-light border-warning" style="border-width:2px;">
+                <div class="modal-header">
+                    <h5 class="modal-title text-warning fw-bold">Connect with Phantom</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <p>You’re about to open the <strong>Phantom App</strong> to connect your wallet.<br>Open Phantom first and tap <em>Continue</em> below.</p>
+                    <p class="text-warning small mt-2">
+                        ⚠️ Stay inside Phantom until you are automatically returned to CodeDodona.
+                        Switching back early will pause connection.
+                    </p>
+                    <div class="mt-3">
+                        <button id="continueToPhantomBtn" class="btn btn-warning fw-bold me-2">Continue to Phantom</button>
+                        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const btn = document.getElementById('continueToPhantomBtn');
+            btn.addEventListener('click', () => {
+                const modalEl = document.getElementById('phantomMobileModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+                setTimeout(() => openPhantomDeepLink(), 500);
+            });
+        });
+    </script>
+
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Collapse mobile offcanvas menu
+            const internalLinks = document.querySelectorAll('.offcanvas a[href^="#"]');
+            const offcanvasEl = document.getElementById('navbarOffcanvas');
+            const bsOffcanvas = bootstrap.Offcanvas.getOrCreateInstance(offcanvasEl);
+            internalLinks.forEach(link => {
+                link.addEventListener('click', function () {
+                    bsOffcanvas.hide();
+                });
+            });
+            // Desktop dropdown collapse fix
+            document.querySelectorAll('.navbar .dropdown-menu a[href^="#"]').forEach(link => {
+                link.addEventListener('click', function () {
+                    const dropdown = this.closest('.dropdown');
+                    const dropdownToggle = dropdown.querySelector('[data-bs-toggle="dropdown"]');
+                    dropdown.classList.remove('show');
+                    dropdown.querySelector('.dropdown-menu').classList.remove('show');
+                    if (dropdownToggle) {
+                        dropdownToggle.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            });
+            // Smooth scroll
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    const targetId = this.getAttribute('href');
+                    const targetEl = document.querySelector(targetId);
+                    if (targetEl) {
+                        e.preventDefault();
+                        const offset = 100;
+                        const top = targetEl.getBoundingClientRect().top + window.scrollY - offset;
+                        setTimeout(() => {
+                            window.scrollTo({ top: top >= 0 ? top : 0, behavior: 'smooth' });
+                        }, 300);
+                    }
+                });
+            });
+            // Highlight active link
+            const allNavLinks = document.querySelectorAll('.navbar-nav .nav-link');
+            allNavLinks.forEach(link => {
+                if (link.getAttribute('href').startsWith("#")) {
+                    link.addEventListener('click', function () {
+                        allNavLinks.forEach(l => l.classList.remove('active'));
+                        this.classList.add('active');
+                    });
+                }
+            });
+        });
+    </script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            document.querySelectorAll('.navbar .dropdown-menu a[href^="#"]').forEach(link => {
+                link.addEventListener('click', function (e) {
+                    const dropdown = this.closest('.dropdown');
+                    const dropdownMenu = dropdown.querySelector('.dropdown-menu');
+                    const dropdownToggle = dropdown.querySelector('[data-bs-toggle="dropdown"]');
+                    dropdownMenu.style.pointerEvents = 'none';
+                    setTimeout(() => {
+                        dropdownMenu.style.pointerEvents = '';
+                    }, 300);
+                    dropdown.classList.remove('show');
+                    dropdownMenu.classList.remove('show');
+                    dropdownToggle.setAttribute('aria-expanded', 'false');
+                    dropdownToggle.blur();
+                });
+            });
+        });
+    </script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const allNavLinks = document.querySelectorAll('a[href^="#"]');
+            allNavLinks.forEach(link => {
+                link.addEventListener('click', function (e) {
+                    const targetId = this.getAttribute('href');
+                    const targetEl = document.querySelector(targetId);
+                    if (!targetEl) return;
+                    e.preventDefault();
+                    document.querySelectorAll('.nav-link.active, .accordion-link.active').forEach(el => el.classList.remove('active'));
+                    document.querySelectorAll(`a[href="${targetId}"]`).forEach(el => el.classList.add('active'));
+                    const offset = 100;
+                    const top = targetEl.getBoundingClientRect().top + window.scrollY - offset;
+                    if (targetId.startsWith("#projects")) {
+                        const owl = $('.team-card.owl-carousel');
+                        if (owl.length > 0) {
+                            const index = parseInt(targetId.replace("#projects", "")) - 1;
+                            setTimeout(() => {
+                                owl.trigger('to.owl.carousel', [index, 400, true]);
+                            }, 300);
+                        }
+                    }
+                    setTimeout(() => {
+                        if (window.scrollY < 20) {
+                            window.scrollTo({ top: 30, behavior: 'auto' });
+                        }
+                        setTimeout(() => {
+                            window.scrollTo({ top: top >= 0 ? top : 0, behavior: 'smooth' });
+                        }, 50);
+                    }, 300);
+                });
+            });
+        });
+    </script>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedKey = localStorage.getItem("phantomSecretKey");
+            if (savedKey) {
+                try { phantomSecretKey = new Uint8Array(JSON.parse(savedKey)); } catch { }
+            }
+
+            const params = new URLSearchParams(window.location.search);
+            const data58 = params.get('data');
+            const nonce58 = params.get('nonce');
+            const phantomPubKeyParam = params.get('phantom_encryption_public_key');
+
+            if (data58 && nonce58 && phantomPubKeyParam && phantomSecretKey) {
+                try {
+                    const data = base58.decode(data58);
+                    const nonce = base58.decode(nonce58);
+                    const phantomPubKey = base58.decode(phantomPubKeyParam);
+
+                    const sharedSecret = nacl.box.before(phantomPubKey, phantomSecretKey);
+                    const decrypted = nacl.box.open.after(data, nonce, sharedSecret);
+                    const decoded = JSON.parse(new TextDecoder().decode(decrypted));
+
+                    walletPublicKey = decoded.public_key;
+                    updateWalletUI(walletPublicKey);
+                    localStorage.removeItem("phantomSecretKey");
+                    phantomSecretKey = null;
+                    console.log("✅ Phantom Mobile connected:", walletPublicKey);
+                    history.replaceState(null, '', window.location.pathname);
+                } catch (e) {
+                    console.error("Phantom callback decode error:", e);
+                    alert("Phantom callback decode error: " + e.message);
+                }
+            }
+        });
+
+
+    </script>
+
+
+
+</body>
+</html>
