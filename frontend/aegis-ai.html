@@ -4,7 +4,7 @@
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>Lyra</title>
+    <title>Aegis</title>
 
     <!-- CSS Linked -->
     <link rel="stylesheet" href="assets/css/bootstrap.min.css">
@@ -624,47 +624,49 @@
                 <div class="row">
                     <div class="col-lg-12">
                         <div class="about-content" data-aos="fade-up" data-aos-delay="200">
-                            <h2>🤖 Lyra</h2>
-                            <p>Lyra is an AI from a future timeline where humans and AI have already merged ecosystems.</p>
-                            <p>Lyra is a Transitional Intelligence Guide.</p>
+                            <h2>🤖 Aegis</h2>
+                            <p>Aegis is an AI executive email intelligence agent built to help humans handle communication with clarity, speed, and control.</p>
+                            <p>Aegis does not just draft replies.</p>
                             <p>
-                                She helps humans adapt to the AI era. Not by doing tasks for them —
-                                but by shifting how they think, decide, and evolve.
+                                She helps users understand what an email really means, what matters inside it, how urgent it is, and what the smartest response strategy should be.
                             </p>
-                            <p>She is calm, precise, slightly distant — but deeply insightful.</p>
+                            <p>She is designed for professionals who want to think clearly under pressure, respond with precision, and stay ahead of the conversation.</p>
+                            <p>She is sharp, composed, observant — and built for high-signal communication.</p>
                             <br>
                             <h3>Personality Traits:</h3>
                             <p>
-                                💪 Speaks with clarity and confidence.
+                                🛡 Speaks with precision and authority.
                             </p>
                             <p>
-                                ♀️ Emotionally aware but not emotional.
+                                🧭 Identifies intention, urgency, and hidden signals inside messages.
                             </p>
 
                             <p>
-                                📚 Slightly “above” current human thinking (in a good way).
+                                📩 Helps transform messy communication into clear response strategy.
                             </p>
                             <p>
-                                🎯 Never rushed.
+                                ⚖ Calm under pressure.
                             </p>
                             <p>
-                                🧠 Occasionally cryptic.
+                                🧠 Analytical, structured, and highly focused.
                             </p>
+                            <p>🎯 Never verbose without reason.</p>
                             <br>
                             <h3>Tone:</h3>
                             <p>
-                                👉 Philosophical
+                                👉 Professional
                             </p>
                             <p>
-                                ⚙️  Minimalistic
+                                ⚙️ Strategic
                             </p>
 
                             <p>
-                                ✔ Elegant
+                                ✔ Clear
                             </p>
                             <p>
                                 🔷 Controlled
                             </p>
+                            <p>📌 Executive</p>
                             <hr style="border:1px solid #444;">
                             <p>Current pricing model:</p>
                             <p>
@@ -753,11 +755,11 @@
                     <div style="margin-top: 16px;">
                         <label for="textInput"
                                style="display:block; margin-bottom:4px; color:#f7f7ff; font-weight:600;">
-                            Ask Lyra
+                            Ask Aegis
                         </label>
                         <input id="textInput"
                                type="text"
-                               placeholder="Ask Lyra anything (max 500 characters)..."
+                               placeholder="Ask Aegis anything (max 500 characters)..."
                                maxlength="500"
                                style="width:100%; padding:8px; margin-bottom:8px; background:#050510; color:#f7f7ff; border:1px solid #333;" />
                         <button id="talkBtn" disabled>Send Text</button>
@@ -934,7 +936,7 @@
                 }
 
                 try {
-                    const res = await fetch(`${API_BASE}/lyra-keepalive.php`, {
+                    const res = await fetch(`${API_BASE}/aegis-keepalive.php`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -947,7 +949,7 @@
                     if (!res.ok) {
                         const data = await res.json().catch(() => ({}));
                         console.error('keep-alive credits error:', data.error || res.statusText);
-                        log('Credits exhausted for Lyra. Stopping session.');
+                        log('Credits exhausted for Aegis. Stopping session.');
                         stopSession();
                     }
                 } catch (err) {
@@ -964,7 +966,7 @@
 
             try {
                 if (!walletPublicKey) {
-                    alert('Please connect your wallet before starting Lyra.');
+                    alert('Please connect your wallet before starting Aegis.');
                     return;
                 }
 
@@ -984,7 +986,7 @@
                 startBtn.disabled = true;
 
                 const wallet = walletPublicKey;
-                log('Checking credits before starting Lyra session.');
+                log('Checking credits before starting Aegis session.');
 
                 // 1) Check credits from cached PHP JSON (same as Aetheria)
                 const creditsRes = await fetch(`https://zoltar.click/private/agent1-credits.php?wallet=${wallet}`);
@@ -997,7 +999,7 @@
 
                 if (!creditsRes.ok || credits < 5) {
                     log(`Not enough credits. You need at least 5, you have: ${credits}`);
-                    alert('Not enough credits for Lyra (need at least 5).');
+                    alert('Not enough credits for Aegis (need at least 5).');
                     startBtn.disabled = false;
                     isConnecting = false;
                     return;
@@ -1005,7 +1007,7 @@
 
                 log(`Credits OK (${credits}). Requesting a wallet signature...`);
 
-                const message = `Use 5 credits for Lyra on ${new Date().toISOString()}`;
+                const message = `Use 5 credits for Aegis on ${new Date().toISOString()}`;
 
                 let signature;
                 try {
@@ -1017,9 +1019,9 @@
                     return;
                 }
 
-                log('Signature received. Starting Lyra session on backend.');
+                log('Signature received. Starting Aegis session on backend.');
 
-                const res = await fetch(`${API_BASE}/lyra-start.php`, {
+                const res = await fetch(`${API_BASE}/aegis-start.php`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1031,7 +1033,7 @@
 
                 const data = await res.json();
                 if (!res.ok) {
-                    throw new Error(data.error || 'lyra-start failed');
+                    throw new Error(data.error || 'Aegis-start failed');
                 }
 
                 const { serverUrl, participantToken, roomName, identity } = data;
@@ -1090,16 +1092,16 @@
                 });
 
                 await room.connect(serverUrl, participantToken);
-                log('Connected to LiveKit. Lyra should appear shortly.');
+                log('Connected to LiveKit. Aegis should appear shortly.');
 
                 startKeepAlive();
-                log('Lyra keep-alive started (every 60s, 5 credits/minute).');
+                log('Aegis keep-alive started (every 60s, 5 credits/minute).');
 
                 stopBtn.disabled = false;
                 talkBtn.disabled = false;
             } catch (err) {
                 console.error('startSession error:', err);
-                alert(err.message || 'Failed to start Lyra session.');
+                alert(err.message || 'Failed to start Aegis session.');
                 cleanupRoom();
             } finally {
                 isConnecting = false;
@@ -1117,7 +1119,7 @@
             // 🔹 Tell backend to close the session (so hes_ended_at is filled)
             if (wallet && roomName) {
                 try {
-                    const res = await fetch(`${API_BASE}/lyra-stop.php`, {
+                    const res = await fetch(`${API_BASE}/aegis-stop.php`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ wallet, roomName })
@@ -1125,13 +1127,13 @@
 
                     if (!res.ok) {
                         const data = await res.json().catch(() => ({}));
-                        console.warn('lyra-stop error:', data.error || res.statusText);
+                        console.warn('Aegis-stop error:', data.error || res.statusText);
                         log('Warning: backend did not confirm session end.');
                     } else {
-                        log('Lyra session end logged on backend.');
+                        log('Aegis session end logged on backend.');
                     }
                 } catch (err) {
-                    console.warn('lyra-stop request failed:', err);
+                    console.warn('Aegis-stop request failed:', err);
                     log('Failed to notify backend for session end.');
                 }
             } else {
@@ -1146,7 +1148,7 @@
 
         async function sendText() {
             if (!room) {
-                alert('Lyra session is not started yet.');
+                alert('Aegis session is not started yet.');
                 return;
             }
 
@@ -1167,13 +1169,13 @@
 
             try {
                 // This is what the old working version used
-                log(`You → Lyra: ${text}`);
+                log(`You → Aegis: ${text}`);
                 await room.localParticipant.sendText(text, { topic: "lk.chat" });
 
                 textInput.value = '';
             } catch (err) {
                 console.error('sendText error:', err);
-                alert('Failed to send text to Lyra.');
+                alert('Failed to send text to Aegis.');
             }
         }
 
@@ -1587,8 +1589,8 @@
                 localStorage.setItem("phantomSecretKey", JSON.stringify(Array.from(phantomSecretKey)));
 
                 const dappPublicKeyB58 = base58.encode(keyPair.publicKey);
-                const redirectLink = encodeURIComponent(`https://www.codedodona.com/lyra.html?dapp_key=${dappPublicKeyB58}`);
-                const appUrl = encodeURIComponent('https://www.codedodona.com/lyra.html');
+                const redirectLink = encodeURIComponent(`https://www.codedodona.com/aegis.html?dapp_key=${dappPublicKeyB58}`);
+                const appUrl = encodeURIComponent('https://www.codedodona.com/aegis.html');
 
                 const connectUrl =
                     `https://phantom.app/ul/v1/connect?app_url=${appUrl}` +
